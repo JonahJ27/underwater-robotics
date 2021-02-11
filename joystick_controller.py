@@ -19,7 +19,7 @@ dots = 8
 screen = None
 
 # write to stderr.  pygame clutters up stdout because of a bug
-def wrerr(msg): 
+def wrerr(msg):
     sys.stderr.write(msg)
 
 # print to stderr to avoid SDL messages
@@ -50,7 +50,7 @@ def readJoystick(js):
         output.append(round(norm))
 
         # print the axis number for debugging
-        wrerr(str(i) + ": ") 
+        wrerr(str(i) + ": ")
         #  print an exclamation point if the value is above this dot, otherwise a period
         for d in range(dots):
             if d < (norm * dots)/179:
@@ -65,7 +65,7 @@ def readJoystick(js):
     for j, button in enumerate([js.get_button(k) for k in range(js.get_numbuttons())]):
         output[4].append(button)
         wrerr("Button " + str(j) + ": " + str(button))
-        
+       
     #prerr("")
     #pygame.event.clear()
     return output
@@ -94,12 +94,12 @@ if __name__ == "__main__":
     pygame.init()
     #screen = pygame.display.set_mode((640, 480))
     #ser = serial.Serial(2)
-    
+   
     # print error message if no joysticks were connected
     if pygame.joystick.get_count() < 1:
         prerr("No joysticks were found :(")
         exit(1)
-        
+       
     # print info about each joystick that was found
     for i, js in enumerate([pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]):
         js.init()
@@ -114,33 +114,39 @@ if __name__ == "__main__":
         exit(1)
 
 
-    # initialize the joystick that was specified on the command line 
+    # initialize the joystick that was specified on the command line
     js = pygame.joystick.Joystick(0)
     if not js.get_init():
         js.init()
 
-    # initialize the joystick that was specified on the command line 
+    # initialize the joystick that was specified on the command line
     js_aux = pygame.joystick.Joystick(1)
     if not js_aux.get_init():
         js_aux.init()
-    
+   
     #If the joysticks are wrong we swap them
     if not js.get_name() == "Saitek Cyborg USB Stick":
         js_temp = js_aux
         js_aux = js
         js = js_temp
-    
-    n = 0 
+   
+    n = 0
+    scale_speed = 0.2
     # loop and read input
     while True:
         values = readJoystick(js) # get array of axis values
         values_aux = readJoystick(js_aux)
 
-        print('\n\n\n', values, '\n\n\n')
-        print('\n\n\n', values_aux, '\n\n\n')
+        print('\n\n', values, '\n\n')
+        print('\n', values_aux, '\n')
+        print('\n', scale_speed, '\n')
+       
 
-        values[2] = .8 * (values[2] - 90) + 90 # scale up thrusters by 80%
-        
+        values[0] = scale_speed * (values[0] - 90) + 90
+        values[1] = scale_speed * (values[1] - 90) + 90
+        values[2] = scale_speed * (values[2] - 90) + 90 # scale up thrusters by 80% or 20% depending on trigger
+
+        print('\n', values[0], ' ', values[1], ' ', values[2],'\n')
         # map joystick axis values to servos
         my_query = {
                 3: 90, # Motor A/Arm Motor
@@ -159,11 +165,16 @@ if __name__ == "__main__":
         values[4].insert(0, 0)
 
         # Check button 7 for thruster kill
-        if(values[4][7] != 1):
+        if(values[4][1] != 1):
             my_query[4] = 92
             my_query[5] = 92
             my_query[6] = 92
             my_query[7] = 92
+
+        if(values[4][7] == 0):
+            scale_speed = 0.2
+        if(values[4][7] != 0):
+            scale_speed = 0.8
 
         # Check aux buttons 7/8 for Motor A/Arm Motor
         if(values_aux[4][7] == 1): # button 7 pressed
@@ -197,7 +208,7 @@ if __name__ == "__main__":
         last_query = my_query.copy()
 
         my_query = urllib.parse.urlencode(my_query)
-        
+       
         prerr("about to send: " + my_query)
         try:
             r = requests.get("http://" + rovIP + ":5000" + "/?" + my_query)
@@ -205,7 +216,7 @@ if __name__ == "__main__":
             # prerr(r.text)
         except Exception as e:
             prerr(str(e))
-        time.sleep(0.1) 
+        time.sleep(0.1)
 
 
 ##### SCRAPS #####
@@ -222,7 +233,7 @@ if __name__ == "__main__":
 #myArduinoCommand = ""#"::" # resetting the state of the ardunio
 
 #for i, v in enumerate(values): # going through the values index and its axis value
-#    myArduinoCommand = myArduinoCommand + letters[i] # setting up the arduino state 
+#    myArduinoCommand = myArduinoCommand + letters[i] # setting up the arduino state
 #    myArduinoCommand = myArduinoCommand + str(int(v))#chr(int(v)) # setting up the arduino spead
 #    # chr(int(v)) is going to convert v as integer with the equivalent value of it as a character
 
@@ -230,6 +241,5 @@ if __name__ == "__main__":
 
 #ser.write(myArduinoCommand) # send the command
 ## going through the values index and its axis value
-#for i, v in enumerate(values): 
+#for i, v in enumerate(values):
 #    my_query[i] = v
-
