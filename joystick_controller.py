@@ -3,7 +3,7 @@
 import os
 import sys
 import time
-import select #not important test change
+import select #not important
 import pygame
 import serial
 import requests
@@ -131,16 +131,22 @@ if __name__ == "__main__":
         js = js_temp
     
     n = 0 
+    scale_speed = 0.2
     # loop and read input
     while True:
         values = readJoystick(js) # get array of axis values
         values_aux = readJoystick(js_aux)
 
-        print('\n\n\n', values, '\n\n\n')
-        print('\n\n\n', values_aux, '\n\n\n')
-
-        values[2] = .8 * (values[2] - 90) + 90 # scale up thrusters by 80%
+        print('\n\n', values, '\n\n')
+        print('\n', values_aux, '\n')
+        print('\n', scale_speed, '\n')
         
+
+        values[0] = scale_speed * (values[0] - 90) + 90
+        values[1] = scale_speed * (values[1] - 90) + 90
+        values[2] = scale_speed * (values[2] - 90) + 90 # scale up thrusters by 80% or 20% depending on trigger
+
+        print('\n', values[0], ' ', values[1], ' ', values[2],'\n')
         # map joystick axis values to servos
         my_query = {
                 3: 90, # Motor A/Arm Motor
@@ -159,11 +165,16 @@ if __name__ == "__main__":
         values[4].insert(0, 0)
 
         # Check button 7 for thruster kill
-        if(values[4][7] != 1):
+        if(values[4][1] != 1):
             my_query[4] = 92
             my_query[5] = 92
             my_query[6] = 92
             my_query[7] = 92
+
+        if(values[4][7] == 0):
+            scale_speed = 0.2
+        if(values[4][7] != 0):
+            scale_speed = 0.8
 
         # Check aux buttons 7/8 for Motor A/Arm Motor
         if(values_aux[4][7] == 1): # button 7 pressed
@@ -232,4 +243,3 @@ if __name__ == "__main__":
 ## going through the values index and its axis value
 #for i, v in enumerate(values): 
 #    my_query[i] = v
-
